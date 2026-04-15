@@ -1,0 +1,2420 @@
+<!-- ============================================ -->
+<!--           GRADIATRON 3000                    -->
+<!--      Magnetic Field Simulation Tool          -->
+<!--                                              -->
+<!--      Structure:                              -->
+<!--        1. HEAD (meta, styles)                -->
+<!--        2. BODY (layout, controls, canvas)    -->
+<!--        3. SCRIPT (JavaScript / logic)        -->
+<!-- ============================================ -->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<!-- ======================== -->
+<!--          HEAD            -->
+<!--  Meta settings & styles  -->
+<!-- ======================== -->
+<head>
+  <meta charset="UTF-8" />
+  <title>Gradiatron 3000</title>
+
+  <style>
+
+    /* ======================================== */
+    /* ##  FONTS                             ## */
+    /* ======================================== */
+
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bitcount+Grid+Double&family=Orbitron&family=Reenie+Beanie&display=swap');
+
+    @font-face {
+      font-family: 'IBMBIOS';
+      src: url('WebPlus_IBM_BIOS-2x.woff') format('woff');
+    }
+
+    /* ======================================== */
+    /* ##  RESET & BOX MODEL                ## */
+    /* ======================================== */
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* ======================================== */
+    /* ##  BODY                             ## */
+    /* ======================================== */
+
+    html {
+      background-color: #060609;
+    } 
+
+    body {
+      color: #00ffcc;
+      font-family: 'Share Tech Mono', monospace;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    /* ======================================== */
+    /* ##  BACKGROUND                       ## */
+    /* ======================================== */
+
+    #bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image:
+        linear-gradient(#e724cd1a 1px, transparent 1px),
+        linear-gradient(90deg, #e724cd1a 1px, transparent 1px);
+      background-size: 40px 40px;
+      animation: flicker 4s infinite;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ======================================== */
+    /* ##  MONITOR BEZEL                    ## */
+    /* ======================================== */
+
+    #monitor {
+      background: linear-gradient(
+        170deg,
+        #ddd8c4 0%,
+        #ccc8b4 20%,
+        #bbb8a8 60%,
+        #a8a898 100%
+      );
+      border-radius: 32px 32px 0 0;
+      padding: 48px;
+      box-shadow:
+        inset 0 6px 12px #ffffff88,
+        inset 6px 0 10px #ffffff44,
+        inset -6px 0 10px #00000022,
+        inset 0 -6px 16px #00000044,
+        0 16px 60px #00000099,
+        0 4px 16px #000000aa,
+        0 0 0 1px #ffffff44;
+      position: relative;
+      z-index: 1;
+      filter: drop-shadow(0 0 40px #00ffcc22)
+        drop-shadow(0 0 80px #00ffcc11)
+        drop-shadow(0 0 120px #e724cd11);
+      overflow: visible;
+    }
+
+    /* --- Bezel Recess Lip --- */
+    #monitor::before {
+      content: '';
+      position: absolute;
+      top: 36px;
+      left: 36px;
+      right: 36px;
+      bottom: 36px;
+      border-radius: 16px;
+      box-shadow:
+        inset 0 4px 16px #00000066,
+        inset 4px 0 12px #00000044,
+        inset -4px 0 12px #00000044,
+        inset 0 -4px 12px #00000033;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* --- Bezel Highlight Ridge --- */
+    #monitor::after {
+      content: '';
+      position: absolute;
+      top: 10px;
+      left: 24px;
+      right: 24px;
+      height: 2px;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        #ffffff66 30%,
+        #ffffff88 50%,
+        #ffffff66 70%,
+        transparent
+      );
+      border-radius: 2px;
+      z-index: 0;
+    }
+
+    /* ======================================== */
+    /* ##  BEZEL SCREWS                     ## */
+    /* ======================================== */
+
+    .bezel-screw {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: radial-gradient(
+        circle at 40% 35%,
+        #ccc 0%,
+        #a8a898 40%,
+        #8a8a7a 100%
+      );
+      box-shadow:
+        inset 0 1px 2px rgba(255, 255, 255, 0.4),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.3),
+        0 1px 2px rgba(0, 0, 0, 0.3);
+      z-index: 5;
+    }
+
+    /* Phillips cross */
+    .bezel-screw::before,
+    .bezel-screw::after {
+      content: '';
+      position: absolute;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 0.5px;
+    }
+
+    .bezel-screw::before {
+      top: 50%;
+      left: 25%;
+      width: 50%;
+      height: 1px;
+      transform: translateY(-50%);
+    }
+
+    .bezel-screw::after {
+      left: 50%;
+      top: 25%;
+      width: 1px;
+      height: 50%;
+      transform: translateX(-50%);
+    }
+
+    .screw-tl { top: 16px; left: 16px; }
+    .screw-tr { top: 16px; right: 16px; }
+    .screw-bl { bottom: 16px; left: 16px; }
+    .screw-br { bottom: 16px; right: 16px; }
+
+    /* ======================================== */
+    /* ##  MONITOR ASSEMBLY                 ## */
+    /* ======================================== */
+
+    #monitor-assembly {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    #monitor-glow {
+      position: absolute;
+      top: 5%;
+      left: 5%;
+      width: 90%;
+      height: 90%;
+      border-radius: 32px;
+      background: radial-gradient(
+        ellipse at 50% 50%,
+        #00ffcc18 0%,
+        #00ffcc0a 40%,
+        #e724cd08 60%,
+        transparent 80%
+      );
+      animation: flicker 4s infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ======================================== */
+    /* ##  CRT VIGNETTE                     ## */
+    /* ======================================== */
+
+    #crt-vignette {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 30;
+      border-radius: 8px;
+      background: radial-gradient(
+        ellipse 85% 80% at 50% 50%,
+        transparent 50%,
+        rgba(0, 0, 0, 0.25) 75%,
+        rgba(0, 0, 0, 0.6) 100%
+      );
+    }
+
+    /* ======================================== */
+    /* ##  PHOSPHOR GLOW                    ## */
+    /* ======================================== */
+
+    /* Glow bleeds from screen onto bezel */
+    #screen {
+      box-shadow:
+        inset 0 4px 24px #00000088,
+        inset 4px 0 16px #00000066,
+        inset -4px 0 16px #00000066,
+        inset 0 -4px 16px #00000055,
+        0 0 0 2px #00000066,
+        0 0 30px #00ffcc33,
+        0 0 60px #00ffcc18,
+        0 0 100px #00ffcc0d;
+    }
+
+    /* ======================================== */
+    /* ##  POWER LED                        ## */
+    /* ======================================== */
+
+    #power-led {
+      position: relative;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: radial-gradient(
+        circle at 35% 35%,
+        #66ff88 0%,
+        #22cc44 50%,
+        #119933 100%
+      );
+      box-shadow:
+        0 0 6px #44ff6688,
+        0 0 16px #22cc4444,
+        inset 0 1px 1px rgba(255, 255, 255, 0.4);
+      z-index: 5;
+    }
+
+    /* ======================================== */
+    /* ##  MANUFACTURER BADGE               ## */
+    /* ======================================== */
+
+    #badge {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(
+        165deg,
+        #1a2a5c 0%,
+        #0f1d45 40%,
+        #1a2a5c 60%,
+        #253570 100%
+      );
+      padding: 6px 14px;
+      border-radius: 2px;
+      box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      z-index: 5;
+      user-select: none;
+    }
+
+    #badge-icon {
+      width: 16px;
+      height: 16px;
+      border: 1.5px solid #8899cc;
+      border-radius: 50%;
+      position: relative;
+      box-shadow: 0 0 4px #8899cc44;
+    }
+
+    /* Crosshair — horizontal line */
+    #badge-icon::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 1px;
+      right: 1px;
+      height: 1px;
+      background: #8899cc;
+      transform: translateY(-50%);
+    }
+
+    /* Crosshair — vertical line */
+    #badge-icon::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 1px;
+      bottom: 1px;
+      width: 1px;
+      background: #8899cc;
+      transform: translateX(-50%);
+    }
+
+    #badge-text {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.55rem;
+      font-weight: bold;
+      letter-spacing: 0.18em;
+      color: #8899cc;
+      text-shadow: 0 0 4px #8899cc33;
+      line-height: 1.2;
+    }
+
+    #badge-text span {
+      display: block;
+      font-size: 0.45rem;
+      letter-spacing: 0.12em;
+      color: #667aaa;
+      font-weight: bold;
+    }
+
+    /* ======================================== */
+    /* ##  BOTTOM CONTROL STRIP             ## */
+    /* ======================================== */
+
+    #bottom-strip {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 20px;
+      background: linear-gradient(
+        180deg,
+        #ccc8b4 0%,
+        #c4c0ac 50%,
+        #bbb8a8 100%
+      );
+      border-top: 1px solid #a8a89866;
+      border-radius: 0 0 28px 28px;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+      z-index: 1;
+    }
+
+    /* --- Speaker Grille --- */
+    #speaker-grille {
+      width: 50px;
+      height: 36px;
+      border-radius: 3px;
+      background: #8b7355;
+      box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.4),
+        0 1px 0 rgba(255, 255, 255, 0.2);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .grille-holes {
+      width: 100%;
+      height: 100%;
+      background-image:
+        radial-gradient(circle, #5a4630 1.5px, transparent 1.5px);
+      background-size: 6px 6px;
+      background-position: 2px 2px;
+    }
+
+    /* --- Decorative Knobs --- */
+    .deco-knob-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .deco-knob {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: radial-gradient(
+        ellipse at 35% 30%,
+        #555 0%,
+        #2a2a2a 40%,
+        #1a1a1a 100%
+      );
+      box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.5),
+        inset 0 1px 1px rgba(255, 255, 255, 0.15),
+        0 0 0 1px rgba(0, 0, 0, 0.3);
+      position: relative;
+    }
+
+    /* Knob indicator line */
+    .deco-knob::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 50%;
+      transform: translateX(-50%) rotate(-30deg);
+      width: 1.5px;
+      height: 6px;
+      background: #999;
+      border-radius: 1px;
+    }
+
+    .deco-knob-lg {
+      width: 28px;
+      height: 28px;
+    }
+
+    .deco-knob-lg::after {
+      height: 8px;
+      top: 4px;
+    }
+
+    .deco-knob-sm {
+      width: 16px;
+      height: 16px;
+    }
+
+    .deco-knob-sm::after {
+      height: 4px;
+      top: 2px;
+    }
+
+    .deco-knob-label {
+      font-family: 'Arial', sans-serif;
+      font-size: 0.38rem;
+      font-weight: bold;
+      color: #666;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    /* --- Menu Toggle --- */
+    #deco-menu {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #deco-toggle {
+      width: 24px;
+      height: 12px;
+      border-radius: 6px;
+      background: linear-gradient(180deg, #1a1a1a, #333);
+      box-shadow:
+        inset 0 1px 2px rgba(0, 0, 0, 0.5),
+        0 1px 0 rgba(255, 255, 255, 0.15);
+      position: relative;
+    }
+
+    /* Toggle LED */
+    #deco-toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 4px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%, #44cc66, #228844);
+      box-shadow: 0 0 4px #44cc6666;
+    }
+
+    /* --- Power Button --- */
+    #deco-power {
+      width: 18px;
+      height: 18px;
+      border-radius: 2px;
+      background: linear-gradient(
+        180deg,
+        #cc3333 0%,
+        #992222 100%
+      );
+      box-shadow:
+        0 2px 3px rgba(0, 0, 0, 0.4),
+        inset 0 1px 1px rgba(255, 255, 255, 0.2),
+        0 0 0 1px rgba(0, 0, 0, 0.3);
+    }
+
+    /* ======================================== */
+    /* ##  RUBBER FEET                      ## */
+    /* ======================================== */
+
+    #feet-row {
+      width: 90%;
+      display: flex;
+      justify-content: space-between;
+      z-index: 1;
+    }
+
+    .rubber-foot {
+      width: 48px;
+      height: 10px;
+      background: linear-gradient(
+        180deg,
+        #444 0%,
+        #2a2a2a 50%,
+        #1a1a1a 100%
+      );
+      border-radius: 2px 2px 4px 4px;
+      box-shadow:
+        0 3px 6px rgba(0, 0, 0, 0.35),
+        inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    }
+
+    /* ======================================== */
+    /* ##  SCREEN CONTAINER                 ## */
+    /* ======================================== */
+
+    #screen {
+      position: relative;
+      width: 900px;
+      background-color: #0a0a0f;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* --- Scanlines (selective) --- */
+    #title-block::after, #info-panel::after, #control-panel::after, #hud-2::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 20;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 2px,
+        rgba(0, 0, 0, 0.12) 2px,
+        rgba(0, 0, 0, 0.12) 4px
+      );
+    }
+
+    /* --- Flicker Animation --- */
+    @keyframes flicker {
+      0%   { opacity: 1.0; }
+      92%  { opacity: 1.0; }
+      93%  { opacity: 0.1; }
+      94%  { opacity: 1.0; }
+      96%  { opacity: 0.2; }
+      97%  { opacity: 1.0; }
+      100% { opacity: 1.0; }
+    }
+
+    /* ======================================== */
+    /* ##  TYPOGRAPHY                       ## */
+    /* ======================================== */
+
+    /* --- Title --- */
+    h1 {
+      font-family: 'IBMBIOS', monospace;
+      font-size: 1.6rem;
+      letter-spacing: 0.3em;
+      text-shadow: 0 0 10px #00ffcccc, 0 0 30px #00ffcc66;
+      text-align: center;
+      white-space: nowrap;
+      padding: 24px 0 8px 8px;
+      width: 100%;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* --- Subtitle --- */
+    .subtitle {
+      font-family: 'Bitcount Grid Double', monospace;
+      font-size: 1rem;
+      color: #e724cdf6;
+      letter-spacing: 1.4em;
+      text-transform: uppercase;
+      text-align: center;
+      width: 100%;
+      padding-bottom: 16px;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* --- Title Divider --- */
+    .title-divider {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        #00ffcc44 20%,
+        #00ffcc66 50%,
+        #00ffcc44 80%,
+        transparent
+      );
+      position: relative;
+      z-index: 2;
+    }
+
+    /* ======================================== */
+    /* ##  TWO COLUMN LAYOUT                ## */
+    /* ======================================== */
+
+    #columns {
+      display: flex;
+      flex-direction: row;
+      flex: 1;
+      width: 100%;
+      gap: 0;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* --- Output Box (Left) --- */
+    #output-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      flex: 1;
+      position: relative;
+      z-index: 3;
+    }
+
+    /* --- Output Box Border --- */
+    #output-box canvas {
+      border: 1px solid #00ffcc66;
+      box-shadow:
+        0 0 8px #00ffcc44,
+        0 0 24px #00ffcc22;
+      border-radius: 2px;
+    }
+
+    /* --- Vertical Divider --- */
+    #divider {
+      width: 1px;
+      margin: 24px 0;
+      background: linear-gradient(
+        to bottom,
+        transparent,
+        #00ffcc66 15%,
+        #00ffcc66 85%,
+        transparent
+      );
+      position: relative;
+      z-index: 2;
+    }
+
+    /* --- Info Panel (Right) --- */
+    #info-panel {
+      flex: 1;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      color: #00ffcc;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.85rem;
+      line-height: 1.8;
+      overflow-y: auto;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* ======================================== */
+    /* ##  CANVAS                           ## */
+    /* ======================================== */
+
+    #display {
+      display: block;
+      width: 420px;
+      height: 420px;
+    }
+
+    /* ======================================== */
+    /* ##  CONTROL PANEL HUD I                ## */
+    /* ======================================== */
+
+    #control-panel {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      display: flex;
+      gap: 12px;
+      align-items: stretch;
+      justify-content: center;
+      background: rgba(10, 10, 20, 0.95);
+      border-top: 1px solid #00ffcc33;
+      padding: 16px 24px;
+    }
+
+    #hud1-controls {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-evenly;
+      flex: 1;
+    }
+
+    #hud3-actions {
+      flex-direction: column;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    /* --- Labels --- */
+    label {
+      font-size: 0.85rem;
+      color: #d9d9d9;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* --- Number Inputs --- */
+    input[type="number"] {
+      background: #0a0a0f;
+      border: 1px solid #00ffcc66;
+      color: #00ffcc;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 1rem;
+      padding: 6px 10px;
+      width: 90px;
+      border-radius: 2px;
+      outline: none;
+    }
+
+    input[type="number"]:focus {
+      border-color: #00ffcc;
+      box-shadow: 0 0 8px #00ffcc44;
+      caret-color: #00ffcc;
+    }
+
+    /* Hide spinner arrows on number inputs */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+
+    /* --- Generate Button --- */
+    button {
+      background: transparent;
+      border: 1px solid #d9d9d9;
+      color: #ff27e2;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 1rem;
+      padding: 10px 24px;
+      cursor: pointer;
+      letter-spacing: 0.15em;
+      transition: all 0.2s;
+      border-radius: 2px;
+      align-self: flex-end;
+    }
+
+    button:hover {
+      background: #00ffcc22;
+      box-shadow: 0 0 16px #00ffcc66;
+    }
+
+    /* --- Print Button --- */
+  #btn-print {
+    background: transparent;
+    border: 1px solid #d9d9d9;
+    color: #00ffcc;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1rem;
+    padding: 10px 24px;
+    cursor: pointer;
+    letter-spacing: 0.15em;
+    transition: all 0.2s;
+    border-radius: 2px;
+    align-self: flex-end;
+  }
+
+    #btn-print:hover {
+      background: #e724cd22;
+      box-shadow: 0 0 16px #e724cd66;
+  }
+
+    /* --- Color Picker --- */
+    #col-picker {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: center;
+    }
+
+    #col-picker input[type="color"] {
+      width: 40px;
+      height: 34px;
+      border: 1px solid #00ffcc66;
+      border-radius: 2px;
+      background: #0a0a0f;
+      cursor: pointer;
+      padding: 2px;
+    }
+
+    /* --- Rocker Switch --- */
+    #mode-switch {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: center;
+    }
+
+    #rocker {
+      display: flex;
+      border: 1px solid #00ffcc66;
+      border-radius: 2px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .rocker-side {
+      padding: 6px 12px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      transition: all 0.15s;
+      user-select: none;
+    }
+
+    .rocker-side.active {
+      background: #00ffcc;
+      color: #0a0a0f;
+      box-shadow: inset 0 2px 6px #00000066;
+    }
+
+    .rocker-side.inactive {
+      background: #0a0a0f;
+      color: #00ffcc44;
+      box-shadow: 0 2px 4px #00000044;
+    }
+
+    /* --- HUD Labels (shared) --- */
+    .hud-label {
+      font-size: 0.85rem;
+      color: #d9d9d9;
+    }
+
+    /* ======================================== */
+    /* ##  DIAL                             ## */
+    /* ======================================== */
+
+    #hud-2 {
+      position: relative;
+      width: 100%;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      padding: 16px;
+      border-top: 1px solid #00ffcc33;
+      margin-top: auto;
+      overflow: hidden;
+    }
+
+    #dial-container {
+      position: relative;
+      width: 100px;
+      height: 60px;
+      margin-top: 24px;
+    }
+
+    #arc-svg {
+      width: 100px;
+      height: 60px;
+      overflow: visible;
+    }
+
+    .arc-track {
+      fill: none;
+      stroke: #00ffcc22;
+      stroke-width: 2;
+    }
+
+    .arc-tick {
+      stroke: #00ffcc66;
+      stroke-width: 1.5;
+    }
+
+    #arc-dot {
+      fill: #e724cd;
+      filter: drop-shadow(0 0 4px #e724cdaa);
+      transition: cx 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  cy 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .dial-label {
+      position: absolute;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.7rem;
+      color: #00ffcc66;
+      cursor: pointer;
+      letter-spacing: 0.1em;
+      transition: color 0.2s, text-shadow 0.2s;
+      user-select: none;
+    }
+
+    .dial-label:hover {
+      color: #00ffcc;
+      text-shadow: 0 0 8px #00ffccaa;
+    }
+
+    .dial-label.active {
+      color: #00ffcc;
+      text-shadow: 0 0 10px #00ffcc88;
+    }
+
+    #label-lin  { bottom: 1px; left: -20px; }
+    #label-inv2 { top: -8px; left: 50%; transform: translateX(-50%); }
+    #label-inv3 { bottom: 1px; right: -28px; }
+
+    /* dial-title replaced by .hud-cell-title */
+
+  /* ======================================== */
+  /* ##  CANVAS SCALE LABEL               ## */
+  /* ======================================== */
+
+  #canvas-wrapper {
+    position: relative;
+    display: inline-block;
+  }
+
+  #scale-label {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: #00ffcc99;
+    letter-spacing: 0.08em;
+    pointer-events: none;
+    z-index: 4;
+  }
+
+  #hud-2 {
+    flex-direction: column;
+  }
+
+  #hud-2-top {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+
+  #hud-2-controls {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+  }
+
+  /* ======================================== */
+  /* ##  HUD II CELLS                      ## */
+  /* ======================================== */
+
+  .hud-cell {
+    border: 1px solid #00ffcc33;
+    border-radius: 4px;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 255, 204, 0.02);
+  }
+
+  .hud-cell-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: #d9d9d9;
+    letter-spacing: 0.12em;
+    text-align: center;
+  }
+
+  .hud-placeholder {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: #00ffcc33;
+    letter-spacing: 0.1em;
+    padding: 16px 12px;
+  }
+
+  /* --- Top row: graph + equation side by side --- */
+  #hud-2-top {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    width: 100%;
+  }
+
+  #graph-wrapper {
+    flex: 1;
+  }
+
+  #profile-graph {
+    width: 100%;
+    height: 80px;
+  }
+
+  #equation-wrapper {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .readout-equation {
+    color: #e724cdf6;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+    line-height: 1.8;
+    text-shadow: 0 0 8px #e724cd44;
+    text-align: center;
+    word-break: break-word;
+  }
+
+  /* --- Bottom row cells share width --- */
+  #toggle-wrapper {
+    flex: 1;
+    justify-content: center;
+  }
+
+  #dial-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ======================================== */
+  /* ##  LIVE DATA READOUT                 ## */
+  /* ======================================== */
+
+  #readout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 0px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    line-height: 1.4;
+  }
+
+  .readout-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    padding: 0 10px;
+  }
+
+  /* Vertical divider between readout columns — left column items */
+  .readout-row:nth-child(2n+1) {
+    border-right: 1px solid #00ffcc33;
+  }
+
+  .readout-key {
+    color: #00ffcc66;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+
+  .readout-val {
+    color: #33ffdd;
+    text-align: right;
+    text-shadow: 0 0 8px #00ffcc66;
+  }
+
+  .readout-divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #00ffcc33 20%, #00ffcc33 80%, transparent);
+    margin: 4px 0;
+  }
+
+  /* ======================================== */
+  /* ##  INSTRUCTION NOTE                  ## */
+  /* ======================================== */
+
+  #note {
+    position: fixed;
+    left: 32px;
+    top: 12%;
+    transform: rotate(-2.5deg);
+    width: 260px;
+    padding: 28px 24px 24px 24px;
+    background:
+      /* Coffee ring stain — upper left, prominent */
+      radial-gradient(ellipse 50px 45px at 12% 14%,
+        rgba(101, 60, 20, 0.18) 0%,
+        rgba(101, 60, 20, 0.12) 35%,
+        rgba(101, 60, 20, 0.0) 50%,
+        rgba(101, 60, 20, 0.10) 55%,
+        rgba(101, 60, 20, 0.0) 68%
+      ),
+      /* Coffee splash near the ring */
+      radial-gradient(ellipse 20px 15px at 6% 10%,
+        rgba(101, 60, 20, 0.10) 0%,
+        rgba(101, 60, 20, 0.0) 100%
+      ),
+      /* Subtle ring — bottom right */
+      radial-gradient(ellipse 60px 55px at 85% 75%,
+        rgba(120, 80, 40, 0.08) 0%,
+        rgba(120, 80, 40, 0.05) 40%,
+        rgba(120, 80, 40, 0.0) 55%,
+        rgba(120, 80, 40, 0.04) 58%,
+        rgba(120, 80, 40, 0.0) 70%
+      ),
+      /* Aged paper */
+      linear-gradient(
+        168deg,
+        #f4f0e1 0%,
+        #ede8d4 30%,
+        #e8e2cc 60%,
+        #e3dcc5 100%
+      );
+    border-radius: 2px;
+    box-shadow:
+      2px 3px 12px rgba(0, 0, 0, 0.4),
+      0 1px 3px rgba(0, 0, 0, 0.2),
+      inset 0 0 30px rgba(120, 100, 60, 0.08);
+    z-index: 10;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.68rem;
+    color: #2a2a2a;
+    line-height: 1.7;
+    letter-spacing: 0.01em;
+  }
+
+  /* Pushpin */
+  #note::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 18px;
+    height: 18px;
+    background: radial-gradient(circle at 40% 35%,
+      #e74c3c 0%,
+      #c0392b 50%,
+      #922b21 100%
+    );
+    border-radius: 50%;
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.4),
+      inset 0 1px 2px rgba(255, 255, 255, 0.3);
+    z-index: 11;
+  }
+
+  /* Pin shadow on paper */
+  #note::after {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 10px;
+    height: 4px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+  }
+
+  #note h2 {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.72rem;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #c0b89880;
+    color: #1a1a1a;
+    letter-spacing: 0.08em;
+  }
+
+  #note ol {
+    padding-left: 16px;
+    margin: 0;
+  }
+
+  #note ol li {
+    margin-bottom: 4px;
+  }
+
+  #note .note-footer {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #c0b89860;
+    font-size: 0.6rem;
+    color: #555;
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+  /* Keep pin visible above paper */
+  #note {
+    overflow: visible;
+    filter: brightness(0.7);
+  }
+
+  /* Horizontal fold crease */
+  #note .crease {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 2%,
+      rgba(160, 140, 100, 0.25) 15%,
+      rgba(160, 140, 100, 0.35) 50%,
+      rgba(160, 140, 100, 0.25) 85%,
+      transparent 98%
+    );
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.4),
+      0 -1px 0 rgba(0, 0, 0, 0.04);
+    pointer-events: none;
+  }
+
+  #note .crease-mid { top: 52%; }
+
+  /* Hide note on smaller screens where it'd overlap the monitor */
+  @media (max-width: 1400px) {
+    #note { display: none; }
+    .sticky { display: none; }
+    #napkin { display: none; }
+  }
+
+  /* ======================================== */
+  /* ##  STICKY NOTES                      ## */
+  /* ======================================== */
+
+  .sticky {
+    filter: brightness(0.7);
+    position: fixed;
+    right: 80px;
+    width: 220px;
+    padding: 18px 16px 16px 16px;
+    background: linear-gradient(
+      175deg,
+      #fff9a8 0%,
+      #fff38a 40%,
+      #ffe96b 100%
+    );
+    border-radius: 1px;
+    box-shadow:
+      2px 3px 10px rgba(0, 0, 0, 0.3),
+      0 1px 2px rgba(0, 0, 0, 0.15),
+      inset 0 -2px 6px rgba(200, 180, 50, 0.1);
+    z-index: 10;
+    font-family: 'Reenie Beanie', cursive;
+    font-size: 1.15rem;
+    color: #2a2a6a;
+    line-height: 1.5;
+    overflow: visible;
+  }
+
+  /* Sticky tape strip */
+  .sticky::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-1deg);
+    width: 50px;
+    height: 14px;
+    background: rgba(255, 255, 255, 0.45);
+    border: 1px solid rgba(200, 200, 200, 0.3);
+    border-radius: 1px;
+    z-index: 11;
+  }
+
+  .sticky-1 {
+    top: 14%;
+    transform: rotate(1.8deg);
+  }
+
+  .sticky-2 {
+    top: 40%;
+    transform: rotate(-1.5deg);
+    width: 210px;
+  }
+
+  .sticky-3 {
+    top: 66%;
+    left: 48px;
+    right: auto;
+    transform: rotate(1.8deg);
+    width: 190px;
+  }
+
+  .sticky em {
+    font-style: normal;
+    text-decoration: underline;
+    text-decoration-color: rgba(200, 50, 50, 0.5);
+  }
+
+  .sticky strong {
+    color: #1a1a50;
+  }
+
+  /* ======================================== */
+  /* ##  NAPKIN                             ## */
+  /* ======================================== */
+
+  #napkin {
+    position: fixed;
+    right: 55px;
+    top: 68%;
+    transform: rotate(2.5deg);
+    width: 280px;
+    height: 280px;
+    padding: 22px 50px 22px 22px;
+    background:
+      /* Subtle fiber texture */
+      repeating-linear-gradient(
+        17deg,
+        transparent 0px,
+        transparent 2px,
+        rgba(200, 195, 185, 0.04) 2px,
+        rgba(200, 195, 185, 0.04) 3px
+      ),
+      repeating-linear-gradient(
+        -73deg,
+        transparent 0px,
+        transparent 3px,
+        rgba(190, 185, 175, 0.03) 3px,
+        rgba(190, 185, 175, 0.03) 4px
+      ),
+      /* Wrinkle crease lines */
+      linear-gradient(
+        172deg,
+        transparent 30%,
+        rgba(180, 180, 180, 0.12) 30.5%,
+        transparent 31%
+      ),
+      linear-gradient(
+        -15deg,
+        transparent 55%,
+        rgba(180, 180, 180, 0.1) 55.3%,
+        transparent 55.6%
+      ),
+      linear-gradient(
+        82deg,
+        transparent 40%,
+        rgba(180, 180, 180, 0.08) 40.3%,
+        transparent 40.6%
+      ),
+      /* Water droplet marks */
+      radial-gradient(ellipse 12px 14px at 15% 75%,
+        rgba(180, 190, 200, 0.12) 0%,
+        rgba(180, 190, 200, 0.06) 50%,
+        transparent 100%
+      ),
+      radial-gradient(ellipse 8px 9px at 45% 85%,
+        rgba(180, 190, 200, 0.1) 0%,
+        rgba(180, 190, 200, 0.04) 60%,
+        transparent 100%
+      ),
+      /* Pen ink smudge */
+      radial-gradient(ellipse 25px 10px at 70% 15%,
+        rgba(40, 50, 120, 0.08) 0%,
+        rgba(40, 50, 120, 0.04) 50%,
+        transparent 100%
+      ),
+      /* Soft white napkin base */
+      linear-gradient(
+        160deg,
+        #ffffff 0%,
+        #fafafa 30%,
+        #f5f5f5 70%,
+        #f0f0f0 100%
+      );
+    border-radius: 3px;
+    box-shadow:
+      2px 4px 12px rgba(0, 0, 0, 0.3),
+      -1px 1px 3px rgba(0, 0, 0, 0.08),
+      1px -1px 2px rgba(0, 0, 0, 0.05),
+      inset 0 0 20px rgba(200, 200, 200, 0.1);
+    z-index: 10;
+    font-family: 'Reenie Beanie', cursive;
+    font-size: 1.9rem;
+    color: #333;
+    line-height: 1.4;
+    overflow: visible;
+    filter: brightness(0.7);
+  }
+
+  /* Napkin has no pin — just sitting there */
+  #napkin .napkin-title {
+    font-family: 'Reenie Beanie', cursive;
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #1a1a50;
+    text-decoration: none;
+    margin-bottom: 4px;
+    display: block;
+  }
+
+  #napkin .napkin-math {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.68rem;
+    color: #2a2a2a;
+    margin: 4px 0;
+    padding-left: 4px;
+  }
+
+  #napkin .napkin-result {
+    font-family: 'Reenie Beanie', cursive;
+    font-weight: bold;
+    color: #c0392b;
+    margin-top: 6px;
+    font-size: 1.5rem;
+  }
+
+  /* Bar watermark — rotated as if napkin was turned sideways */
+  #napkin-watermark {
+    position: absolute;
+    right: -20px;
+    top: 50%;
+    transform: translateY(-50%) rotate(-90deg);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    opacity: 0.18;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  /* Wine glass icon */
+  #napkin-glass {
+    width: 14px;
+    height: 22px;
+    position: relative;
+  }
+
+  /* Glass bowl (rounded) */
+  #napkin-glass::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 14px;
+    height: 10px;
+    border: 2px solid #c45a20;
+    border-top: none;
+    border-radius: 0 0 7px 7px;
+  }
+
+  /* Stem + base */
+  #napkin-glass::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 8px;
+    background: #c45a20;
+    box-shadow:
+      -4px 8px 0 0 #c45a20,
+      -3px 8px 0 0 #c45a20,
+      -2px 8px 0 0 #c45a20,
+      -1px 8px 0 0 #c45a20,
+      0 8px 0 0 #c45a20,
+      1px 8px 0 0 #c45a20,
+      2px 8px 0 0 #c45a20,
+      3px 8px 0 0 #c45a20,
+      4px 8px 0 0 #c45a20;
+  }
+
+  #napkin-barname {
+    font-family: 'Arial', sans-serif;
+    font-size: 0.45rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #c45a20;
+    text-align: center;
+    line-height: 1.3;
+    margin-top: 8px;
+  }
+
+  /* Top-right dog-ear — corner folded in, grid peeks through */
+  #napkin-fold-top {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 22px;
+    height: 22px;
+    background: linear-gradient(
+      315deg,
+      #e0ddd6 0%,
+      #d8d5ce 100%
+    );
+    clip-path: polygon(0% 0%, 100% 0%, 100% 100%);
+    z-index: 12;
+  }
+
+  /* Folded-in corner — napkin folds over itself */
+  #napkin::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(
+      135deg,
+      #eae8e2 0%,
+      #e0ddd6 50%,
+      #d8d5ce 100%
+    );
+    clip-path: polygon(100% 0%, 0% 100%, 100% 100%);
+    box-shadow: inset 2px -2px 4px rgba(0, 0, 0, 0.06);
+    z-index: 12;
+    border-radius: 0 0 3px 0;
+  }
+
+  /* Pen ink smear on napkin */
+  #napkin::after {
+    content: '';
+    position: absolute;
+    bottom: 18px;
+    left: 14px;
+    width: 30px;
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(
+      90deg,
+      rgba(40, 50, 130, 0.15) 0%,
+      rgba(40, 50, 130, 0.08) 60%,
+      transparent 100%
+    );
+    transform: rotate(-8deg);
+    pointer-events: none;
+  }
+
+  /* ======================================== */
+  /* ##  SOURCE 2 CELL                     ## */
+  /* ======================================== */
+
+  #src2-wrapper {
+    flex: 1;
+    transition: opacity 0.3s, border-color 0.3s;
+  }
+
+  /* Dimmed state when Source 2 is OFF */
+  #src2-wrapper.src2-off {
+    opacity: 0.4;
+    border-color: #00ffcc1a;
+  }
+
+  /* Lit state when Source 2 is ON */
+  #src2-wrapper.src2-on {
+    opacity: 1;
+    border-color: #00ffcc66;
+    box-shadow: 0 0 12px #00ffcc11;
+  }
+
+  #src2-coords {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .src2-label {
+    font-size: 0.75rem;
+    color: #d9d9d9;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .src2-label input[type="number"] {
+    width: 60px;
+    font-size: 0.8rem;
+    padding: 4px 6px;
+  }
+
+  #src2-field-mode {
+    margin-top: 2px;
+  }
+
+  /* --- Small rocker switches (for HUD II) --- */
+  .rocker-sm {
+    display: flex;
+    border: 1px solid #00ffcc66;
+    border-radius: 2px;
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  .rocker-side-sm {
+    padding: 4px 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .rocker-side-sm.active {
+    background: #00ffcc;
+    color: #0a0a0f;
+    box-shadow: inset 0 2px 6px #00000066;
+  }
+
+  .rocker-side-sm.inactive {
+    background: #0a0a0f;
+    color: #00ffcc44;
+    box-shadow: 0 2px 4px #00000044;
+  }
+
+  </style>
+
+</head>
+
+<!-- ======================== -->
+<!--          BODY            -->
+<!--  Page layout & controls  -->
+<!-- ======================== -->
+<body>
+
+  <div id="bg"></div>
+
+  <!-- Instruction Note (pinned to the wall) -->
+  <div id="note">
+    <div class="crease crease-mid"></div>
+    <h2>GRADIATRON 3000<br/>QUICK REFERENCE</h2>
+    <ol>
+      <li>Set Source 1 position (X, Y) and Max Radius in HUD I</li>
+      <li>Pick a color and display mode (Two-Tone or Heat Map)</li>
+      <li>Select a falloff law: Linear, Inv&sup2;, or Inv&sup3;</li>
+      <li>Hit GENERATE to render the field</li>
+      <li>Toggle Source 2 ON to add a second field point</li>
+      <li>ALIGN = fields add; OPPOSE = fields subtract (shown in complementary color)</li>
+      <li>Hit PRINT for a hi-res 1000&times;1000 export</li>
+    </ol>
+    <p class="note-footer">Note: In OPPOSE mode, perceived brightness varies by color due to human vision. Try different colors for best contrast.</p>
+  </div>
+
+  <!-- Physicist's Sticky Notes (pinned to wall, right side) -->
+  <div class="sticky sticky-1">
+    RANGE &ne; Max Radius! For INV&sup2; and INV&sup3;, the field never truly hits zero &mdash; RANGE shows where it drops below ~5%. Linear is the only mode with a hard cutoff.
+  </div>
+
+  <div class="sticky sticky-2">
+    The dark line in OPPOSE mode = the <strong>null boundary</strong> where B&sub1; = B&sub2;. Try offsetting sources vertically to see the saddle point shift!
+  </div>
+
+  <div class="sticky sticky-3">
+    Heat map mode is better for locating field nulls. Two-tone loses detail in the low-intensity regions &mdash; switch modes to compare!!
+  </div>
+
+  <!-- Napkin with dipole derivation -->
+  <div id="napkin">
+    <div id="napkin-fold-top"></div>
+    <div id="napkin-watermark">
+      <div id="napkin-barname">philosophy<br/>underground</div>
+      <div id="napkin-glass"></div>
+    </div>
+    <span class="napkin-title">Dipole result!!</span>
+    <div class="napkin-math">A: &ensp;1/r&sup2;</div>
+    <div class="napkin-math">B: &minus;1/(r+1)&sup2;</div>
+    <div class="napkin-math" style="margin-top:6px;">A+B: 1/r&sup2; &minus; 1/(r+1)&sup2;</div>
+    <div class="napkin-math">&ensp;= (2r+1) / r&sup2;(r+1)&sup2;</div>
+    <div class="napkin-math">&ensp;&approx; <strong>1/r&sup3;</strong> for large r</div>
+    <div class="napkin-result">&rarr; OPPOSE + INV&sup2; = dipole = INV&sup3; !!</div>
+  </div>
+
+  <div id="monitor-assembly">
+  <!-- Ambient glow behind monitor (flickers independently) -->
+  <div id="monitor-glow"></div>
+  <div id="monitor">
+    <!-- Bezel Screws -->
+    <div class="bezel-screw screw-tl"></div>
+    <div class="bezel-screw screw-tr"></div>
+    <div class="bezel-screw screw-bl"></div>
+    <div class="bezel-screw screw-br"></div>
+
+    <div id="screen">
+
+      <!-- CRT Vignette Overlay -->
+      <div id="crt-vignette"></div>
+
+      <!-- Title Block -->
+      <div id="title-block">
+        <h1>Gradiatron 3000</h1>
+        <p class="subtitle">Magnetic Field Simulator</p>
+        <div class="title-divider"></div>
+      </div>
+
+      <!-- Two Column Layout -->
+      <div id="columns">
+
+        <!-- Left: Output Box -->
+        <div id="output-box">
+          <div id="canvas-wrapper">
+            <canvas id="display" width="420" height="420"></canvas>
+            <span id="scale-label">SCALE: 1:1  |  ABS</span>
+          </div>
+        </div>
+
+        <!-- Centre: Vertical Divider -->
+        <div id="divider"></div>
+
+        <!-- Right: Info Panel -->
+      <div id="info-panel">
+        <!-- Live Data Readout -->
+        <div id="readout">
+          <div class="readout-row">
+            <span class="readout-key">MODE</span>
+            <span class="readout-val" id="ro-mode">Two-Tone</span>
+          </div>
+          <div class="readout-row">
+            <span class="readout-key">FALLOFF</span>
+            <span class="readout-val" id="ro-falloff">Linear</span>
+          </div>
+          <div class="readout-row">
+            <span class="readout-key">SRC 1</span>
+            <span class="readout-val" id="ro-src1">(210, 210)</span>
+          </div>
+          <div class="readout-row">
+            <span class="readout-key">SRC 2</span>
+            <span class="readout-val" id="ro-src2">OFF</span>
+          </div>
+          <div class="readout-row">
+            <span class="readout-key">RADIUS</span>
+            <span class="readout-val" id="ro-radius">200</span>
+          </div>
+          <div class="readout-row">
+            <span class="readout-key">RANGE</span>
+            <span class="readout-val" id="ro-range">200</span>
+          </div>
+        </div>
+
+        <div id="hud-2">
+
+          <!-- Top row: Field Profile Graph + Equation -->
+          <div id="hud-2-top">
+          <div id="graph-wrapper" class="hud-cell">
+            <span class="hud-cell-title">FIELD PROFILE</span>
+            <svg id="profile-graph" viewBox="0 0 100 60">
+              <!-- Axes -->
+              <line x1="10" y1="5" x2="10" y2="50" stroke="#00ffcc33" stroke-width="1"/>
+              <line x1="10" y1="50" x2="95" y2="50" stroke="#00ffcc33" stroke-width="1"/>
+              <!-- Axis labels -->
+              <text x="5" y="9" fill="#00ffcc88" font-size="6" text-anchor="middle" font-family="Share Tech Mono, monospace">1</text>
+              <text x="5" y="53" fill="#00ffcc88" font-size="6" text-anchor="middle" font-family="Share Tech Mono, monospace">0</text>
+              <text x="12" y="58" fill="#00ffcc88" font-size="6" font-family="Share Tech Mono, monospace">0</text>
+              <text x="78" y="58" fill="#00ffcc88" font-size="6" font-family="Share Tech Mono, monospace">rMax</text>
+              <!-- Curve (updated by JS) -->
+              <polyline id="profile-curve" points="" fill="none" stroke="#e724cd" stroke-width="1.5"
+                style="filter: drop-shadow(0 0 2px #e724cdaa)"/>
+            </svg>
+          </div>
+          <div id="equation-wrapper" class="hud-cell">
+            <span class="hud-cell-title">EQUATION</span>
+            <div class="readout-equation" id="ro-equation">I = max(0, 1 − r/R)</div>
+          </div>
+          </div>
+
+          <!-- Bottom row: Toggle (left) + Dial (right) -->
+          <div id="hud-2-controls">
+            <div id="src2-wrapper" class="hud-cell src2-off">
+              <span class="hud-cell-title">SOURCE 2</span>
+
+              <!-- ON / OFF toggle -->
+              <div id="src2-power">
+                <div id="rocker-power" class="rocker-sm">
+                  <div class="rocker-side-sm active" id="side-src2-off" onclick="setSrc2Power('off')">OFF</div>
+                  <div class="rocker-side-sm inactive" id="side-src2-on"  onclick="setSrc2Power('on')">ON</div>
+                </div>
+              </div>
+
+              <!-- X / Y inputs -->
+              <div id="src2-coords">
+                <label class="src2-label">X:
+                  <input type="number" id="src2X" value="300" disabled />
+                </label>
+                <label class="src2-label">Y:
+                  <input type="number" id="src2Y" value="210" disabled />
+                </label>
+              </div>
+
+              <!-- ALIGN / OPPOSE toggle -->
+              <div id="src2-field-mode">
+                <div id="rocker-field" class="rocker-sm">
+                  <div class="rocker-side-sm inactive" id="side-align"  onclick="setFieldMode('align')">ALIGN</div>
+                  <div class="rocker-side-sm inactive" id="side-oppose" onclick="setFieldMode('oppose')">OPPOSE</div>
+                </div>
+              </div>
+            </div>
+            <div id="dial-wrapper" class="hud-cell">
+              <span class="hud-cell-title">FALLOFF MODE</span>
+              <div id="dial-container">
+                <svg id="arc-svg" viewBox="0 0 140 80">
+                  <!-- Arc track -->
+                  <path class="arc-track" d="M 10 75 A 60 60 0 0 1 130 75" />
+                  <!-- Tick marks -->
+                  <line class="arc-tick" x1="10" y1="75" x2="16" y2="69" />
+                  <line class="arc-tick" x1="70" y1="15" x2="70" y2="23" />
+                  <line class="arc-tick" x1="130" y1="75" x2="124" y2="69" />
+                  <!-- Sliding dot -->
+                  <circle id="arc-dot" cx="10" cy="75" r="5" />
+                </svg>
+                <span class="dial-label active" id="label-lin"  onclick="setFalloff('lin')">LIN</span>
+                <span class="dial-label"        id="label-inv2" onclick="setFalloff('inv2')">INV²</span>
+                <span class="dial-label"        id="label-inv3" onclick="setFalloff('inv3')">INV³</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>  <!-- closes #info-panel -->
+      </div>  <!-- closes #columns -->
+
+      <!-- HUD Control Panel -->
+      <div id="control-panel">
+
+        <!-- HUD I: Source controls -->
+        <div id="hud1-controls" class="hud-cell">
+          <label>Source X:
+            <input type="number" id="srcX" value="210" />
+          </label>
+          <label>Source Y:
+            <input type="number" id="srcY" value="210" />
+          </label>
+          <label>Max Radius:
+            <input type="number" id="rMax" value="200" />
+          </label>
+          <div id="col-picker">
+            <span class="hud-label">COL</span>
+            <input type="color" id="colPicker" value="#00ffcc" />
+          </div>
+          <div id="mode-switch">
+            <span class="hud-label">MODE</span>
+            <div id="rocker">
+              <div class="rocker-side active" id="side-twotone" onclick="setMode('twotone')">TWO-TONE</div>
+              <div class="rocker-side inactive" id="side-heatmap" onclick="setMode('heatmap')">HEAT MAP</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- HUD III: Action buttons -->
+        <div id="hud3-actions" class="hud-cell">
+          <button onclick="generate()">GENERATE</button>
+          <button id="btn-print" onclick="printGenerate()">PRINT</button>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Bottom Control Strip -->
+  <div id="bottom-strip">
+    <!-- Power LED -->
+    <div id="power-led"></div>
+    <!-- Speaker Grille -->
+    <div id="speaker-grille">
+      <div class="grille-holes"></div>
+    </div>
+    <!-- Decorative Knobs -->
+    <div class="deco-knob-group">
+      <div class="deco-knob"></div>
+      <span class="deco-knob-label">TRE</span>
+    </div>
+    <div class="deco-knob-group">
+      <div class="deco-knob deco-knob-lg"></div>
+      <span class="deco-knob-label">VOL</span>
+    </div>
+    <div class="deco-knob-group">
+      <div class="deco-knob"></div>
+      <span class="deco-knob-label">BAS</span>
+    </div>
+    <!-- Spacer -->
+    <div style="flex:1"></div>
+    <!-- Menu section -->
+    <div id="deco-menu">
+      <span class="deco-knob-label" style="margin-bottom:2px;">MENU</span>
+      <div id="deco-toggle"></div>
+    </div>
+    <div class="deco-knob-group">
+      <div class="deco-knob deco-knob-sm"></div>
+    </div>
+    <!-- Power button -->
+    <div id="deco-power"></div>
+    <!-- Manufacturer Badge -->
+    <div id="badge">
+      <div id="badge-icon"></div>
+      <div id="badge-text">WENDELL<span>INDUSTRIES</span></div>
+    </div>
+  </div>
+  <!-- Rubber Feet -->
+  <div id="feet-row">
+    <div class="rubber-foot"></div>
+    <div class="rubber-foot"></div>
+  </div>
+  </div>
+
+  <!-- ======================== -->
+  <!--         SCRIPT           -->
+  <!--  JavaScript / Logic      -->
+  <!-- ======================== -->
+  <script>
+
+    // ─────────────────────────────────────────
+    //  STATE — Active display mode
+    // ─────────────────────────────────────────
+    let currentMode = 'twotone';
+
+    // ─────────────────────────────────────────
+    //  UI — Rocker switch mode selector
+    // ─────────────────────────────────────────
+    function setMode(mode) {
+      currentMode = mode;
+      document.getElementById('side-twotone').className =
+        'rocker-side ' + (mode === 'twotone' ? 'active' : 'inactive');
+      document.getElementById('side-heatmap').className =
+        'rocker-side ' + (mode === 'heatmap' ? 'active' : 'inactive');
+    }
+
+    // ─────────────────────────────────────────
+    //  STATE — Active falloff mode
+    // ─────────────────────────────────────────
+    let currentFalloff = 'lin';
+
+    // ─────────────────────────────────────────
+    //  STATE — Source 2 power and field mode
+    // ─────────────────────────────────────────
+    let src2Active = false;
+    let fieldMode = 'align';  // 'align' = fields add, 'oppose' = fields subtract
+
+    // ─────────────────────────────────────────
+    //  UI — Source 2 power toggle (ON/OFF)
+    // ─────────────────────────────────────────
+    function setSrc2Power(state) {
+      src2Active = (state === 'on');
+      const wrapper = document.getElementById('src2-wrapper');
+      wrapper.className = 'hud-cell ' + (src2Active ? 'src2-on' : 'src2-off');
+
+      // Toggle input fields
+      document.getElementById('src2X').disabled = !src2Active;
+      document.getElementById('src2Y').disabled = !src2Active;
+
+      // Update rocker visuals
+      document.getElementById('side-src2-off').className =
+        'rocker-side-sm ' + (src2Active ? 'inactive' : 'active');
+      document.getElementById('side-src2-on').className =
+        'rocker-side-sm ' + (src2Active ? 'active' : 'inactive');
+
+      // Light up ALIGN/OPPOSE only when ON
+      if (src2Active) {
+        setFieldMode(fieldMode);
+      } else {
+        document.getElementById('side-align').className = 'rocker-side-sm inactive';
+        document.getElementById('side-oppose').className = 'rocker-side-sm inactive';
+      }
+    }
+
+    // ─────────────────────────────────────────
+    //  UI — Field mode toggle (ALIGN/OPPOSE)
+    // ─────────────────────────────────────────
+    function setFieldMode(mode) {
+      if (!src2Active) return;  // ignore clicks when Source 2 is off
+      fieldMode = mode;
+      document.getElementById('side-align').className =
+        'rocker-side-sm ' + (mode === 'align' ? 'active' : 'inactive');
+      document.getElementById('side-oppose').className =
+        'rocker-side-sm ' + (mode === 'oppose' ? 'active' : 'inactive');
+    }
+
+    // ─────────────────────────────────────────
+    //  UI — Dial falloff selector
+    // ─────────────────────────────────────────
+    function setFalloff(mode) {
+      currentFalloff = mode;
+
+      // Move dot along arc
+      const positions = {
+        lin:  { cx: 10,  cy: 75 },
+        inv2: { cx: 70,  cy: 15 },
+        inv3: { cx: 130, cy: 75 }
+      };
+      const dot = document.getElementById('arc-dot');
+      dot.setAttribute('cx', positions[mode].cx);
+      dot.setAttribute('cy', positions[mode].cy);
+
+      // Update active label
+      ['lin', 'inv2', 'inv3'].forEach(m => {
+        const el = document.getElementById('label-' + m);
+        el.classList.toggle('active', m === mode);
+      });
+    }
+
+    // ─────────────────────────────────────────
+    //  MATH — Raw falloff intensity by mode
+    // ─────────────────────────────────────────
+    function getRawIntensity(dist, rMax) {
+      const d = dist / rMax;
+      switch(currentFalloff) {
+        case 'lin':  return Math.max(0, 1 - d);
+        case 'inv2': { const s = d * 4; return 1 / (1 + s * s); }
+        case 'inv3': { const s = d * 4; return 1 / (1 + s * s * s); }
+        default:     return Math.max(0, 1 - d);
+      }
+    }
+
+    // ─────────────────────────────────────────
+    //  UTIL — Hex color string → [R, G, B]
+    // ─────────────────────────────────────────
+
+    function hexToRgb(hex) {
+      return [
+        parseInt(hex.slice(1,3), 16),
+        parseInt(hex.slice(3,5), 16),
+        parseInt(hex.slice(5,7), 16)
+      ];
+    }
+
+    // ─────────────────────────────────────────
+    //  UTIL — [R, G, B] → [H, S, L]
+    // ─────────────────────────────────────────
+
+    function rgbToHsl(r, g, b) {
+      r /= 255; g /= 255; b /= 255;
+      const max = Math.max(r,g,b), min = Math.min(r,g,b);
+      let h, s, l = (max + min) / 2;
+      if (max === min) { h = s = 0; }
+      else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch(max) {
+          case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+          case g: h = ((b - r) / d + 2) / 6; break;
+          case b: h = ((r - g) / d + 4) / 6; break;
+        }
+      }
+      return [h * 360, s, l];
+    }
+
+    // ─────────────────────────────────────────
+    //  UTIL — HSL interpolation helper
+    // ─────────────────────────────────────────
+
+    function hue2rgb(p, q, t) {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1/6) return p + (q - p) * 6 * t;
+      if (t < 1/2) return q;
+      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    }
+
+    // ─────────────────────────────────────────
+    //  UTIL — [H, S, L] → [R, G, B]
+    // ─────────────────────────────────────────
+
+    function hslToRgb(h, s, l) {
+      h /= 360;
+      let r, g, b;
+      if (s === 0) { r = g = b = l; }
+      else {
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+      }
+      return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+    }
+
+    // ─────────────────────────────────────────
+    //  UTIL — Complementary color (180° hue rotation)
+    // ─────────────────────────────────────────
+
+    function complementaryRgb(r, g, b) {
+      const [h, s, l] = rgbToHsl(r, g, b);
+      return hslToRgb((h + 180) % 360, s, l);
+    }
+
+    // ─────────────────────────────────────────
+    //  COLOR — Heat map pixel color from intensity
+    // ─────────────────────────────────────────
+
+    function heatmapColor(t, r, g, b) {
+      // 3 stops: black → chosen color → yellow → white
+      if (t < 0.4) {
+        const s = t / 0.4;
+        return [Math.round(r*s), Math.round(g*s), Math.round(b*s)];
+      } else if (t < 0.75) {
+        const s = (t - 0.4) / 0.35;
+        const chosenHue = rgbToHsl(r, g, b)[0];
+        const hue = chosenHue + (60 - chosenHue) * s;
+        const [yr, yg, yb] = hslToRgb(hue, 1, 0.5);
+        return [
+          Math.round(r + (yr - r) * s),
+          Math.round(g + (yg - g) * s),
+          Math.round(b + (yb - b) * s)
+        ];
+      } else {
+        const s = (t - 0.75) / 0.25;
+        const [yr, yg, yb] = hslToRgb(60, 1, 0.5);
+        return [
+          Math.round(yr + (255 - yr) * s),
+          Math.round(yg + (255 - yg) * s),
+          Math.round(yb + (255 - yb) * s)
+        ];
+      }
+    }
+
+    // ─────────────────────────────────────────
+    //  RENDER — Draw simulation to main canvas (420×420)
+    // ─────────────────────────────────────────
+
+    function generate() {
+      const srcX = parseInt(document.getElementById('srcX').value);
+      const srcY = parseInt(document.getElementById('srcY').value);
+      const rMax = parseInt(document.getElementById('rMax').value);
+      const [r, g, b] = hexToRgb(document.getElementById('colPicker').value);
+
+      const canvas = document.getElementById('display');
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width;
+      const H = canvas.height;
+
+      // Source 2 parameters (only used when active)
+      const s2X = parseInt(document.getElementById('src2X').value);
+      const s2Y = parseInt(document.getElementById('src2Y').value);
+      const sign = (fieldMode === 'oppose') ? -1 : 1;
+
+      // Pre-pass: collect raw intensities
+      const raw = new Float32Array(W * H);
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const dist1 = Math.sqrt((x - srcX) ** 2 + (y - srcY) ** 2);
+          let val = getRawIntensity(dist1, rMax);
+
+          if (src2Active) {
+            const dist2 = Math.sqrt((x - s2X) ** 2 + (y - s2Y) ** 2);
+            val += sign * getRawIntensity(dist2, rMax);
+          }
+
+          raw[y * W + x] = val;
+        }
+      }
+
+      // Compute complementary color for negative field values (OPPOSE mode)
+      const [cr, cg, cb] = complementaryRgb(r, g, b);
+
+      const imageData = ctx.createImageData(W, H);
+      const data = imageData.data;
+      for (let i = 0; i < W * H; i++) {
+        const v = raw[i];
+        // Use absolute value for intensity, pick color based on sign
+        const t = Math.min(1, Math.abs(v));
+        const isNeg = v < 0;
+        const colR = isNeg ? cr : r;
+        const colG = isNeg ? cg : g;
+        const colB = isNeg ? cb : b;
+        let pr, pg, pb;
+        if (currentMode === 'twotone') {
+          pr = Math.round(colR * t);
+          pg = Math.round(colG * t);
+          pb = Math.round(colB * t);
+        } else {
+          [pr, pg, pb] = heatmapColor(t, colR, colG, colB);
+        }
+        data[i * 4]     = pr;
+        data[i * 4 + 1] = pg;
+        data[i * 4 + 2] = pb;
+        data[i * 4 + 3] = 255;
+      }
+      ctx.putImageData(imageData, 0, 0);
+
+      // Update scale label — show effective falloff radius
+      // INV² and INV³ use a ×4 intensity scaling factor,
+      // so their visible falloff radius is rMax ÷ 4
+      const label = document.getElementById('scale-label');
+      const effR = currentFalloff === 'lin' ? rMax : Math.round(rMax / 4);
+      const modeNames = { lin: 'Linear', inv2: 'Inv Square', inv3: 'Inv Cube' };
+      const srcMode = src2Active ? fieldMode.toUpperCase() : 'SINGLE';
+      label.textContent = `SCALE: 1:1  |  ${modeNames[currentFalloff]}  |  RANGE: ${effR}  |  ${srcMode}`;
+
+      // ── Field profile graph ──
+      // Sample the falloff curve and draw it into the HUD SVG
+      const graphLeft = 10, graphRight = 95;
+      const graphTop = 5,  graphBottom = 50;
+      const steps = 40;
+      let pts = '';
+      for (let i = 0; i <= steps; i++) {
+        const d = (i / steps) * rMax;              // distance from 0 to rMax
+        const intensity = getRawIntensity(d, rMax); // 1 at centre, ~0 at edge
+        const px = graphLeft + (i / steps) * (graphRight - graphLeft);
+        const py = graphBottom - intensity * (graphBottom - graphTop);
+        pts += `${px.toFixed(1)},${py.toFixed(1)} `;
+      }
+      document.getElementById('profile-curve').setAttribute('points', pts.trim());
+
+      // ── Live data readout ──
+      updateReadout(srcX, srcY, rMax, effR);
+    }
+
+    // ─────────────────────────────────────────
+    //  UI — Update live data readout panel
+    // ─────────────────────────────────────────
+
+    function updateReadout(srcX, srcY, rMax, effR) {
+      const modeNames = { twotone: 'Two-Tone', heatmap: 'Heat Map' };
+      const falloffNames = { lin: 'Linear', inv2: 'Inv Square', inv3: 'Inv Cube' };
+
+      document.getElementById('ro-mode').textContent = modeNames[currentMode];
+      document.getElementById('ro-falloff').textContent = falloffNames[currentFalloff];
+      document.getElementById('ro-src1').textContent = `(${srcX}, ${srcY})`;
+      document.getElementById('ro-radius').textContent = rMax;
+      document.getElementById('ro-range').textContent = effR;
+
+      // Source 2 status
+      if (src2Active) {
+        const s2X = document.getElementById('src2X').value;
+        const s2Y = document.getElementById('src2Y').value;
+        document.getElementById('ro-src2').textContent =
+          `(${s2X}, ${s2Y}) ${fieldMode.toUpperCase()}`;
+      } else {
+        document.getElementById('ro-src2').textContent = 'OFF';
+      }
+
+      // Build equation string
+      let eq = '';
+      const falloffEq = {
+        lin:  'max(0, 1 − r/R)',
+        inv2: '1 / (1 + (4r/R)²)',
+        inv3: '1 / (1 + (4r/R)³)'
+      };
+
+      if (!src2Active) {
+        // Single source
+        eq = `I = ${falloffEq[currentFalloff]}`;
+      } else {
+        // Two sources — use r₁ and r₂
+        const f1 = falloffEq[currentFalloff].replace('r/', 'r\u2081/').replace('r)', 'r\u2081)');
+        const f2 = falloffEq[currentFalloff].replace('r/', 'r\u2082/').replace('r)', 'r\u2082)');
+        const op = (fieldMode === 'align') ? '+' : '−';
+        eq = `I = ${f1} ${op} ${f2}`;
+      }
+
+      document.getElementById('ro-equation').textContent = eq;
+    }
+
+    // ─────────────────────────────────────────
+    //  EXPORT — Render high-res output (1000×1000) + save
+    // ─────────────────────────────────────────
+
+    function printGenerate() {
+      const srcX = parseInt(document.getElementById('srcX').value);
+      const srcY = parseInt(document.getElementById('srcY').value);
+      const rMax = parseInt(document.getElementById('rMax').value);
+      const [r, g, b] = hexToRgb(document.getElementById('colPicker').value);
+
+      const SIZE = 1000;
+      const scale = SIZE / 420;
+      const scaledSrcX = srcX * scale;
+      const scaledSrcY = srcY * scale;
+      const scaledRMax = rMax * scale;
+
+      // Source 2 parameters (scaled for high-res)
+      const s2X = parseInt(document.getElementById('src2X').value) * scale;
+      const s2Y = parseInt(document.getElementById('src2Y').value) * scale;
+      const sign = (fieldMode === 'oppose') ? -1 : 1;
+
+      const offscreen = document.createElement('canvas');
+      offscreen.width = SIZE;
+      offscreen.height = SIZE;
+      const ctx = offscreen.getContext('2d');
+      // Pre-pass
+      const raw = new Float32Array(SIZE * SIZE);
+      for (let y = 0; y < SIZE; y++) {
+        for (let x = 0; x < SIZE; x++) {
+          const dist1 = Math.sqrt((x - scaledSrcX) ** 2 + (y - scaledSrcY) ** 2);
+          let val = getRawIntensity(dist1, scaledRMax);
+
+          if (src2Active) {
+            const dist2 = Math.sqrt((x - s2X) ** 2 + (y - s2Y) ** 2);
+            val += sign * getRawIntensity(dist2, scaledRMax);
+          }
+
+          raw[y * SIZE + x] = val;
+        }
+      }
+
+      // Compute complementary color for negative field values (OPPOSE mode)
+      const [cr, cg, cb] = complementaryRgb(r, g, b);
+
+      const imageData = ctx.createImageData(SIZE, SIZE);
+      const data = imageData.data;
+      for (let i = 0; i < SIZE * SIZE; i++) {
+        const v = raw[i];
+        const t = Math.min(1, Math.abs(v));
+        const isNeg = v < 0;
+        const colR = isNeg ? cr : r;
+        const colG = isNeg ? cg : g;
+        const colB = isNeg ? cb : b;
+        let pr, pg, pb;
+        if (currentMode === 'twotone') {
+          pr = Math.round(colR * t);
+          pg = Math.round(colG * t);
+          pb = Math.round(colB * t);
+        } else {
+          [pr, pg, pb] = heatmapColor(t, colR, colG, colB);
+        }
+        data[i * 4]     = pr;
+        data[i * 4 + 1] = pg;
+        data[i * 4 + 2] = pb;
+        data[i * 4 + 3] = 255;
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+      const dataURL = offscreen.toDataURL('image/png');
+
+      const popup = window.open('', '_blank', 'width=1060,height=1120');
+      popup.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Gradiatron 3000 — Export</title>
+          <style>
+            body {
+              background: #0a0a0f;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              min-height: 100vh;
+              margin: 0;
+              font-family: monospace;
+              gap: 16px;
+            }
+            img { display: block; }
+            a {
+              color: #00ffcc;
+              border: 1px solid #00ffcc66;
+              padding: 10px 32px;
+              text-decoration: none;
+              letter-spacing: 0.15em;
+              font-size: 1rem;
+            }
+            a:hover { background: #00ffcc22; }
+          </style>
+        </head>
+        <body>
+          <img src="${dataURL}" width="1000" height="1000" />
+          <a href="${dataURL}" download="gradiatron3000.png">SAVE</a>
+        </body>
+        </html>
+      `);
+    }
+
+  </script>
+
+</body>
+
+</html>
