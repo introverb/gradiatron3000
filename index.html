@@ -71,8 +71,8 @@
       width: 100%;
       height: 100%;
       background-image:
-        linear-gradient(#e724cd1a 1px, transparent 1px),
-        linear-gradient(90deg, #e724cd1a 1px, transparent 1px);
+        linear-gradient(#e724cd33 1px, transparent 1px),
+        linear-gradient(90deg, #e724cd33 1px, transparent 1px);
       background-size: 40px 40px;
       animation: flicker 4s infinite;
       z-index: 0;
@@ -1365,6 +1365,20 @@
     height: 280px;
     padding: 22px 50px 22px 22px;
     background:
+      /* Big glass ring imprint in center */
+      radial-gradient(circle 130px at 48% 48%,
+        transparent 65%,
+        rgba(150, 145, 130, 0.05) 68%,
+        rgba(150, 145, 130, 0.1) 70%,
+        rgba(150, 145, 130, 0.05) 72%,
+        transparent 75%
+      ),
+      /* Faint fill inside ring from condensation */
+      radial-gradient(circle 96px at 48% 48%,
+        rgba(170, 165, 150, 0.04) 0%,
+        rgba(170, 165, 150, 0.02) 80%,
+        transparent 100%
+      ),
       /* Subtle fiber texture */
       repeating-linear-gradient(
         17deg,
@@ -1372,13 +1386,6 @@
         transparent 2px,
         rgba(200, 195, 185, 0.04) 2px,
         rgba(200, 195, 185, 0.04) 3px
-      ),
-      repeating-linear-gradient(
-        -73deg,
-        transparent 0px,
-        transparent 3px,
-        rgba(190, 185, 175, 0.03) 3px,
-        rgba(190, 185, 175, 0.03) 4px
       ),
       /* Wrinkle crease lines */
       linear-gradient(
@@ -1392,12 +1399,6 @@
         transparent 55%,
         rgba(180, 180, 180, 0.1) 55.3%,
         transparent 55.6%
-      ),
-      linear-gradient(
-        82deg,
-        transparent 40%,
-        rgba(180, 180, 180, 0.08) 40.3%,
-        transparent 40.6%
       ),
       /* Water droplet marks */
       radial-gradient(ellipse 12px 14px at 15% 75%,
@@ -1474,65 +1475,69 @@
     transform: translateY(-50%) rotate(-90deg);
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: stretch;
     gap: 6px;
     opacity: 0.18;
     pointer-events: none;
     white-space: nowrap;
   }
 
-  /* Wine glass icon */
-  #napkin-glass {
-    width: 14px;
-    height: 22px;
-    position: relative;
-  }
-
-  /* Glass bowl (rounded) */
-  #napkin-glass::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 14px;
-    height: 10px;
-    border: 2px solid #c45a20;
-    border-top: none;
-    border-radius: 0 0 7px 7px;
-  }
-
-  /* Stem + base */
-  #napkin-glass::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 2px;
-    height: 8px;
-    background: #c45a20;
-    box-shadow:
-      -4px 8px 0 0 #c45a20,
-      -3px 8px 0 0 #c45a20,
-      -2px 8px 0 0 #c45a20,
-      -1px 8px 0 0 #c45a20,
-      0 8px 0 0 #c45a20,
-      1px 8px 0 0 #c45a20,
-      2px 8px 0 0 #c45a20,
-      3px 8px 0 0 #c45a20,
-      4px 8px 0 0 #c45a20;
+  /* Philosophy Underground logo */
+  #napkin-logo svg {
+    width: auto;
+    height: 100%;
+    display: block;
   }
 
   #napkin-barname {
     font-family: 'Arial', sans-serif;
-    font-size: 0.45rem;
+    font-size: 0.52rem;
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 0.15em;
     color: #c45a20;
     text-align: center;
     line-height: 1.3;
-    margin-top: 8px;
+  }
+
+  #napkin-word-top {
+    letter-spacing: 0.31em;
+  }
+
+  /* Crimped ridges — bottom edge */
+  #napkin-ridges-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 32px;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 3px,
+      rgba(180, 175, 160, 0.15) 3px,
+      rgba(180, 175, 160, 0.15) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Crimped ridges — left edge */
+  #napkin-ridges-left {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 32px;
+    height: 100%;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 3px,
+      rgba(180, 175, 160, 0.15) 3px,
+      rgba(180, 175, 160, 0.15) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
   }
 
   /* Top-right dog-ear — corner folded in, grid peeks through */
@@ -1711,9 +1716,15 @@
   <!-- Napkin with dipole derivation -->
   <div id="napkin">
     <div id="napkin-fold-top"></div>
+    <div id="napkin-ridges-bottom"></div>
+    <div id="napkin-ridges-left"></div>
     <div id="napkin-watermark">
-      <div id="napkin-barname">philosophy<br/>underground</div>
-      <div id="napkin-glass"></div>
+      <div id="napkin-barname"><span id="napkin-word-top">philosophy</span><br/><span id="napkin-word-bot">underground</span></div>
+      <div id="napkin-logo"><svg viewBox="0 0 1314 1299" xmlns="http://www.w3.org/2000/svg">
+        <path d="M1229.25 0H0V822.284L181.552 639.747V182.34H1132.45V218.794H867.257C730.258 218.794 598.871 273.453 501.998 370.746L0 874.923V1142L623.636 515.657C699.728 439.234 802.932 396.3 910.543 396.3H1314V0H1229.25Z" fill="#c45a20"/>
+        <path d="M1006.5 1299C1176.33 1299 1314 1160.43 1314 989.5C1314 818.568 1176.33 680 1006.5 680C836.672 680 699 818.568 699 989.5C699 1160.43 836.672 1299 1006.5 1299Z" fill="#c45a20"/>
+        <path d="M896.835 444C808.917 444 724.599 479.079 662.431 541.52L0 1206.86V1299H207.581L726.143 778.16C838.098 665.711 894.359 643.807 1049.08 643.807H1314V444H896.835Z" fill="#c45a20"/>
+      </svg></div>
     </div>
     <span class="napkin-title">Dipole result!!</span>
     <div class="napkin-math">A: &ensp;1/r&sup2;</div>
