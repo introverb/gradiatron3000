@@ -1672,6 +1672,86 @@
     box-shadow: 0 2px 4px #00000044;
   }
 
+  /* ======================================== */
+  /*  WELCOME OVERLAY — notepad held up       */
+  /* ======================================== */
+
+  #welcome-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    animation: dimIn 0.6s ease;
+  }
+
+  @keyframes dimIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  #welcome-overlay.dismissing {
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+  }
+
+  #welcome-pad {
+    width: 420px;
+    background:
+      repeating-linear-gradient(
+        transparent 0px,
+        transparent 27px,
+        #c8b89044 27px,
+        #c8b89044 28px
+      ),
+      linear-gradient(180deg, #f5e6a3, #f0dc82 30%, #f5e6a3);
+    padding: 40px 36px 36px 56px;
+    border-radius: 3px;
+    box-shadow:
+      0 8px 40px rgba(0, 0, 0, 0.6),
+      0 2px 8px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    transform: rotate(-1.5deg);
+    position: relative;
+    cursor: default;
+  }
+
+  /* Red margin line */
+  #welcome-pad::before {
+    content: '';
+    position: absolute;
+    left: 44px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: #d4736c88;
+  }
+
+  #welcome-pad p {
+    font-family: 'Reenie Beanie', cursive;
+    font-size: 1.45rem;
+    line-height: 1.55;
+    color: #2a2520;
+    margin: 0 0 14px 0;
+  }
+
+  #welcome-pad p:last-child {
+    margin-bottom: 0;
+  }
+
+  #welcome-pad .pad-hint {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: #8a8070;
+    text-align: center;
+    margin-top: 20px;
+    letter-spacing: 0.1em;
+  }
+
   </style>
 
 </head>
@@ -1681,6 +1761,16 @@
 <!--  Page layout & controls  -->
 <!-- ======================== -->
 <body>
+
+  <!-- Welcome notepad overlay -->
+  <div id="welcome-overlay" onclick="this.classList.add('dismissing'); setTimeout(() => this.remove(), 400);">
+    <div id="welcome-pad" onclick="event.stopPropagation();">
+      <p>Finally proved what I've been telling the team for weeks &mdash; the dropout in the sensor array isn't noise, it's a field null. Ran two sources in OPPOSE at inverse-square and there it is, clear as day. The dead zone sits right between the sources, exactly at the midpoint.</p>
+      <p>Used heat map mode to pinpoint the boundary. Printed the result. Going to bring this to the meeting on Monday.</p>
+      <p>Note to self: try adjusting Source 2 position to see how the null migrates. Could explain the intermittent readings in the east wing.</p>
+      <div class="pad-hint">CLICK ANYWHERE TO CONTINUE</div>
+    </div>
+  </div>
 
   <div id="bg"></div>
 
