@@ -2327,6 +2327,8 @@
       const [r, g, b] = hexToRgb(document.getElementById('colPicker').value);
 
       const SIZE = 1000;
+      const HEADER = 220;
+      const TOTAL_H = HEADER + SIZE;
       const scale = SIZE / 420;
       const scaledSrcX = srcX * scale;
       const scaledSrcY = srcY * scale;
@@ -2339,9 +2341,14 @@
 
       const offscreen = document.createElement('canvas');
       offscreen.width = SIZE;
-      offscreen.height = SIZE;
+      offscreen.height = TOTAL_H;
       const ctx = offscreen.getContext('2d');
-      // Pre-pass
+
+      // Fill entire canvas true black
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, SIZE, TOTAL_H);
+
+      // Pre-pass — compute field
       const raw = new Float32Array(SIZE * SIZE);
       for (let y = 0; y < SIZE; y++) {
         for (let x = 0; x < SIZE; x++) {
@@ -2383,10 +2390,129 @@
         data[i * 4 + 3] = 255;
       }
 
-      ctx.putImageData(imageData, 0, 0);
+      // Place field image below the header
+      ctx.putImageData(imageData, 0, HEADER);
+
+      // ── Header: draw readout, equation, and field profile ──
+      const modeNames = { twotone: 'Two-Tone', heatmap: 'Heat Map' };
+      const falloffNames = { lin: 'Linear', inv2: 'Inv Square', inv3: 'Inv Cube' };
+      const falloffEq = {
+        lin:  'max(0, 1 \u2212 r/R)',
+        inv2: '1 / (1 + (4r/R)\u00b2)',
+        inv3: '1 / (1 + (4r/R)\u00b3)'
+      };
+
+      // Build readout values
+      const modeStr = modeNames[currentMode];
+      const falloffStr = falloffNames[currentFalloff];
+      const src1Str = `(${srcX}, ${srcY})`;
+      let src2Str = 'OFF';
+      if (src2Active) {
+        const s2Xi = document.getElementById('src2X').value;
+        const s2Yi = document.getElementById('src2Y').value;
+        src2Str = `(${s2Xi}, ${s2Yi}) ${fieldMode.toUpperCase()}`;
+      }
+      const radiusStr = '' + rMax;
+      const effR = parseInt(document.getElementById('ro-range').textContent);
+      const rangeStr = '' + effR;
+
+      // Build equation string
+      let eqStr = '';
+      if (!src2Active) {
+        eqStr = 'I = ' + falloffEq[currentFalloff];
+      } else {
+        const f1 = falloffEq[currentFalloff].replace('r/', 'r\u2081/').replace('r)', 'r\u2081)');
+        const f2 = falloffEq[currentFalloff].replace('r/', 'r\u2082/').replace('r)', 'r\u2082)');
+        const op = (fieldMode === 'align') ? '+' : '\u2212';
+        eqStr = 'I = ' + f1 + ' ' + op + ' ' + f2;
+      }
+
+      // ── Left side: readout + equation ──
+      ctx.font = '16px monospace';
+      const col1x = 40;
+      const col1v = 170;
+      let rowY = 30;
+      const rowStep = 26;
+
+      const readoutRows = [
+        ['MODE', modeStr],
+        ['FALLOFF', falloffStr],
+        ['SRC 1', src1Str],
+        ['SRC 2', src2Str],
+        ['RADIUS', radiusStr],
+        ['RANGE', rangeStr],
+      ];
+
+      for (const [key, val] of readoutRows) {
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.fillText(key, col1x, rowY);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(val, col1v, rowY);
+        rowY += rowStep;
+      }
+
+      // Equation below readout
+      rowY += 4;
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillText('EQUATION', col1x, rowY);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '15px monospace';
+      ctx.fillText(eqStr, col1v, rowY);
+
+      // ── Right side: field profile mini-graph ──
+      const graphL = 530;
+      const graphR = SIZE - 40;
+      const graphT = 30;
+      const graphB = 160;
+
+      // Label
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = '12px monospace';
+      ctx.fillText('FIELD PROFILE', graphL, graphT - 10);
+
+      // Axes
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(graphL, graphT);
+      ctx.lineTo(graphL, graphB);
+      ctx.lineTo(graphR, graphB);
+      ctx.stroke();
+
+      // Axis labels
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.font = '11px monospace';
+      ctx.fillText('1', graphL - 14, graphT + 5);
+      ctx.fillText('0', graphL - 14, graphB + 4);
+      ctx.fillText('0', graphL + 2, graphB + 14);
+      ctx.fillText('rMax', graphR - 30, graphB + 14);
+
+      // Curve
+      const steps = 60;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i <= steps; i++) {
+        const d = (i / steps) * rMax;
+        const intensity = getRawIntensity(d, rMax);
+        const px = graphL + (i / steps) * (graphR - graphL);
+        const py = graphB - intensity * (graphB - graphT);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+
+      // Separator line between header and field image
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(30, HEADER - 10);
+      ctx.lineTo(SIZE - 30, HEADER - 10);
+      ctx.stroke();
+
       const dataURL = offscreen.toDataURL('image/png');
 
-      const popup = window.open('', '_blank', 'width=1060,height=1120');
+      const popup = window.open('', '_blank', 'width=1060,height=1340');
       popup.document.write(`
         <!DOCTYPE html>
         <html>
@@ -2394,7 +2520,7 @@
           <title>Gradiatron 3000 — Export</title>
           <style>
             body {
-              background: #0a0a0f;
+              background: #000000;
               display: flex;
               flex-direction: column;
               align-items: center;
@@ -2417,7 +2543,7 @@
           </style>
         </head>
         <body>
-          <img src="${dataURL}" width="1000" height="1000" />
+          <img src="${dataURL}" width="1000" height="${TOTAL_H}" />
           <a href="${dataURL}" download="gradiatron3000.png">SAVE</a>
         </body>
         </html>
