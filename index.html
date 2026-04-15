@@ -1610,6 +1610,11 @@
     border-color: #00ffcc1a;
   }
 
+  /* Keep the title readable when dimmed */
+  #src2-wrapper.src2-off > .hud-cell-title {
+    opacity: calc(1 / 0.4);
+  }
+
   /* Lit state when Source 2 is ON */
   #src2-wrapper.src2-on {
     opacity: 1;
@@ -1733,8 +1738,8 @@
 
   #welcome-pad p {
     font-family: 'Reenie Beanie', cursive;
-    font-size: 1.45rem;
-    line-height: 1.55;
+    font-size: 1.35rem;
+    line-height: 1.5;
     color: #2a2520;
     margin: 0 0 14px 0;
   }
@@ -1765,9 +1770,10 @@
   <!-- Welcome notepad overlay -->
   <div id="welcome-overlay" onclick="this.classList.add('dismissing'); setTimeout(() => this.remove(), 400);">
     <div id="welcome-pad" onclick="event.stopPropagation();">
-      <p>Finally proved what I've been telling the team for weeks &mdash; the dropout in the sensor array isn't noise, it's a field null. Ran two sources in OPPOSE at inverse-square and there it is, clear as day. The dead zone sits right between the sources, exactly at the midpoint.</p>
-      <p>Used heat map mode to pinpoint the boundary. Printed the result. Going to bring this to the meeting on Monday.</p>
-      <p>Note to self: try adjusting Source 2 position to see how the null migrates. Could explain the intermittent readings in the east wing.</p>
+      <p>4/14/26</p>
+      <p>Finally made progress understanding the relation between point sources, magnetic fields, and electron clouds. The orbital patterns in electron diagrams aren't random &mdash; they're derived by an offset of two charge-like points.</p>
+      <p>Ran two sources in OPPOSE at inverse square. The visual resemblance to the excited hydrogen atom electron orbital is obvious.</p>
+      <p>Need to think about what this means. Electron orbitals are clearly magnetic, but the charge dynamics alone should cause a collision with the nucleus. Something doesn't make sense yet...</p>
       <div class="pad-hint">CLICK ANYWHERE TO CONTINUE</div>
     </div>
   </div>
